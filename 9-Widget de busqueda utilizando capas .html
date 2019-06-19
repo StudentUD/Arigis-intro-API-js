@@ -1,0 +1,124 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS API for JavaScript Hello World App</title>
+ 
+  <!-- comentar ctr + / -->
+  <!-- estilo de pagina  -->
+ <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.11/"></script>
+
+  <script>
+      /*importante mantener orden de llamaod de los recurosos ya que pueden sobrelapar elementos o capas */
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/widgets/Search",
+      "esri/layers/FeatureLayer"
+    ], function(Map, MapView, Search, FeatureLayer) {
+
+      // creacion de un mapa base 
+      var mapToUse = new Map({
+
+        // aqui podemos entocntrar los base mapa a utilizardevelopers.arcgis.com/javascript/latest/api-reference/esri-Map.html#basemap
+        basemap: "topo-vector"
+        // basemap: 'streets'
+      });
+
+
+      var view = new MapView({
+        
+        // indico a que elemento html insertare mi mapa 
+        container: "viewDiv",
+
+        // indicar que mapa deseo utilizar
+         map: mapToUse,
+        
+        /*longitud y latud */
+        center: [-118.71511, 34.09042], // longitude, latitude
+        zoom: 15
+      });
+
+
+/////////////// PASO 1 
+
+// Search widget
+var search = new Search({
+        view: view
+      });
+
+      view.ui.add(search, "top-right");
+
+
+
+
+// ENCONTRAT DIRECCION DE ACUEROD A UN PUNTO 
+
+view.on("click", function(evt){
+        search.clear();
+        view.popup.clear();
+        if (search.activeSource) {
+          var geocoder = search.activeSource.locator; // World geocode service
+          geocoder.locationToAddress(evt.mapPoint)
+            .then(function(response) { // Show the address found
+              var address = response.address;
+              showPopup(address, evt.mapPoint);
+            }, function(err) { // Show no address found
+              showPopup("No address found.", evt.mapPoint);
+            });
+        }
+      });
+
+      function showPopup(address, pt) {
+        view.popup.open({
+          title:  + Math.round(pt.longitude * 100000)/100000 + "," + Math.round(pt.latitude * 100000)/100000,
+          content: address,
+          location: pt
+        });
+      }
+
+
+
+      var trailsLayer = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0",
+      });
+
+      mapToUse.add(trailsLayer); // Optionally add layer to map
+
+
+
+
+
+
+      ///////// paso 2 asignamos en que campos podremos buscar en la capa
+      search.sources.push({
+        layer: trailsLayer,
+        searchFields: ["TRL_NAME"],
+        displayField: "TRL_NAME",
+        exactMatch: false,
+        outFields: ["TRL_NAME", "PARK_NAME"],
+        resultGraphicEnabled: true,
+        name: "Trailheads",
+        placeholder: "Example: Medea Creek Trail",
+      });
+    });
+
+  </script>
+</head>
+
+
+<body>
+ <h1>  MAPA PARQUES USA  </h1>
+  <div id="viewDiv"></div>
+</body>
+</html>

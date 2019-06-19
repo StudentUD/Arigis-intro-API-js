@@ -1,0 +1,382 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS API for JavaScript Hello World App</title>
+ 
+  <!-- comentar ctr + / -->
+  <!-- estilo de pagina  -->
+ <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.11/"></script>
+
+  <script>
+      /*importante mantener orden de llamaod de los recurosos ya que pueden sobrelapar elementos o capas */
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      
+      // ANIAIDMOS 
+      "esri/layers/FeatureLayer",
+      "esri/widgets/CoordinateConversion"
+    ], function(Map, MapView, FeatureLayer, CoordinateConversion) {
+
+      // creacion de un mapa base 
+      var mapToUse = new Map({
+
+        // aqui podemos entocntrar los base mapa a utilizardevelopers.arcgis.com/javascript/latest/api-reference/esri-Map.html#basemap
+        basemap: "topo-vector"
+  
+      });
+
+
+      var view = new MapView({
+        
+        // indico a que elemento html insertare mi mapa 
+        container: "viewDiv",
+
+        // indicar que mapa deseo utilizar
+         map: mapToUse,
+        
+        /*longitud y latud */
+        center: [-118.71511, 34.09042], // longitude, latitude
+      zoom: 11
+ 
+      });
+
+       // Trailheads feature layer (points)
+       var trailheadsLayer = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0"
+      });
+
+      mapToUse.add(trailheadsLayer);
+      
+
+       var trailsLayer = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trails/FeatureServer/0",
+       // definitionExpression: "ELEV_GAIN < 250"
+      });
+
+      mapToUse.add(trailsLayer, 0);
+
+      // Parks and open spaces (polygons)
+      var parksLayer = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space/FeatureServer/0"
+      });
+
+      //mapToUse.add(parksLayer, 0);
+
+
+/////////////////////////// PASO 1  
+
+///// UTILIZAMOS LA IMAGEN 
+      var trailheadsRenderer = {
+        type: "simple",
+        symbol: {
+          type: "picture-marker",
+          url: "http://static.arcgis.com/images/Symbols/NPS/npsPictograph_0231b.png",
+          width: "20px",
+          height: "20px"
+        }
+      }
+///DAMOS FORMATO A LOS LABELS
+      var trailheadsLabels = {
+        symbol: {
+          type: "text",
+          color: "#FFFFFF",
+          haloColor: "#5E8D74",
+          haloSize: "2px",
+          font: {
+            size: "12px",
+            family: "noto-sans",
+            style: "italic",
+            weight: "normal"
+          }
+        },
+        labelPlacement: "above-center",
+
+        // INDICAMOS QUE ATRIBUO LE DAREMOS EL ESTILO 
+        labelExpressionInfo: {
+          expression: "$feature.TRL_NAME"
+        }
+      };
+
+// CRREAMOS LA CAPA Y LA ANIADIMOS 
+      var trailheads = new FeatureLayer({
+        url:
+          "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0",
+        renderer: trailheadsRenderer,
+        labelingInfo: [trailheadsLabels]
+      });
+
+      mapToUse.add(trailheads);
+
+
+
+
+
+
+//////////////////////PASO 2 
+
+      var trailsRenderer = {
+        type: "simple",
+        symbol: {
+          color: "red",
+          type: "simple-line",
+          style: "solid"
+        },
+
+        ///// simple variables 
+        // propiedad que me me permite manipular los estilos de acuerdo a la elevacion 
+        visualVariables: [
+          {
+            type: "size",
+            field: "ELEV_GAIN",
+            minDataValue: 0,
+            maxDataValue: 2300,
+            minSize: "3px",
+            maxSize: "7px"
+          }
+        ]
+      };
+
+      var trails = new FeatureLayer({
+        url:
+          "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trails/FeatureServer/0",
+        renderer: trailsRenderer,
+        opacity: .75
+      });
+
+      mapToUse.add(trails, 0);
+
+
+
+
+      ///////////////////// PASO 5 USANDO SELECTORES 
+
+      var bikeTrailsRenderer = {
+        type: "simple",
+        symbol: {
+          type: "simple-line",
+          style: "short-dot",
+          color: "yellow",
+          width: "5px"
+        }
+      };
+
+      var bikeTrails = new FeatureLayer({
+        // es la misma url del paruqes 
+        url:
+          "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trails/FeatureServer/0",
+        renderer: bikeTrailsRenderer,
+
+        // LENGUAJE DE DEFINCION 
+        definitionExpression: "USE_BIKE = 'YES'"
+      });
+
+      mapToUse.add(bikeTrails, 1);
+
+      //PASO 6 
+      function createFillSymbol(value, color) {
+        return {
+          value: value,
+          symbol: {
+            color: color,
+            type: "simple-fill",
+            style: "solid",
+            outline: {
+              style: "none"
+            }
+          },
+          label: value
+        };
+      }
+
+      // DECLARIANDO COLORES Y SELECCIONADO DE ACUERDO A LOS CAMPOS 
+      var openSpacesRenderer = {
+        type: "unique-value",
+        field: "TYPE",
+        uniqueValueInfos: [
+          createFillSymbol("Natural Areas", "#9E559C"),
+          createFillSymbol("Regional Open Space", "#A7C636"),
+          createFillSymbol("Local Park", "#149ECE"),
+          createFillSymbol("Regional Recreation Park", "#ED5151")
+        ]
+      };
+
+
+      var openspaces = new FeatureLayer({
+        url:
+          "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space/FeatureServer/0",
+        renderer: openSpacesRenderer,
+        opacity: 0.50
+      });
+
+      mapToUse.add(openspaces, 0);
+
+////////////////////////////////////////PASO  6 //////////////////////////////////////
+/////////////////////// POP UP
+      var popupTrailheads = {
+        "title": "{TRL_NAME}",
+        "content": "<b>City:</b> {CITY_JUR}<br><b>Cross Street:</b> {X_STREET}<br><b>Parking:</b> {PARKING}<br><b>Elevation:</b> {ELEV_FT} ft"
+      }
+
+      var trailheads = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads_Styled/FeatureServer/0",
+        outFields: ["TRL_NAME","CITY_JUR","X_STREET","PARKING","ELEV_FT"],
+        popupTemplate: popupTrailheads
+      });
+
+      mapToUse.add(trailheads);
+
+
+
+
+      //////////////////////// POPU SPACES  POR FUCNION 
+
+      var popupOpenspaces = {
+        "title": "{PARK_NAME}",
+        "content": [{
+          "type": "fields",
+          "fieldInfos": [
+            {
+              "fieldName": "AGNCY_NAME",
+              "label": "Agency",
+              "isEditable": true,
+              "tooltip": "",
+              "visible": true,
+              "format": null,
+              "stringFieldOption": "textbox"
+            },
+            {
+              "fieldName": "TYPE",
+              "label": "Type",
+              "isEditable": true,
+              "tooltip": "",
+              "visible": true,
+              "format": null,
+              "stringFieldOption": "textbox"
+            },
+            {
+              "fieldName": "ACCESS_TYP",
+              "label": "Access",
+              "isEditable": true,
+              "tooltip": "",
+              "visible": true,
+              "format": null,
+              "stringFieldOption": "textbox"
+            },
+            {
+              "fieldName": "GIS_ACRES",
+              "label": "Acres",
+              "isEditable": true,
+              "tooltip": "",
+              "visible": true,
+              "format": {
+                "places": 2,
+                "digitSeparator": true
+              },
+              "stringFieldOption": "textbox"
+            }
+          ]
+        }]
+      }
+
+      var openspaces = new FeatureLayer({
+        url: "https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space_Styled/FeatureServer/0",
+        outFields: ["TYPE","PARK_NAME", "AGNCY_NAME","ACCESS_TYP","GIS_ACRES"],
+        popupTemplate: popupOpenspaces
+      });
+
+      mapToUse.add(openspaces,0);
+
+
+
+      ////////////////////
+
+      var popupTrails = {
+        title: "Trail Information",
+        //*** ADD ***//
+        // content: function(){
+        //    return "This is {TRL_NAME} with {ELEV_GAIN} ft of climbing.";
+        // }
+        content: [{
+          type: "media",
+            mediaInfos: [{
+              type: "column-chart",
+              caption: "",
+              value: {
+                fields: [ "ELEV_MIN","ELEV_MAX" ],
+                normalizeField: null,
+                tooltipField: "Min and max elevation values"
+              }
+            }]
+        }]
+      }
+
+
+
+
+////////////////// PASO 7 COLOCANDO WIGET DE PSOCION 
+      var coordsWidget = document.createElement("div");
+      coordsWidget.id = "coordsWidget";
+      coordsWidget.className = "esri-widget esri-component";
+      coordsWidget.style.padding = "7px 15px 5px";
+
+      view.ui.add(coordsWidget, "bottom-right");
+
+
+      // impresion de las coordenas 
+        //*** ADD ***//
+        function showCoordinates(pt) {
+        var coords = "Latitud / Longitud " + pt.latitude.toFixed(3) + " " + pt.longitude.toFixed(3) +
+            " | Escala 1:" + Math.round(view.scale * 1) / 1 +
+            " | Zoom " + view.zoom;
+        coordsWidget.innerHTML = coords;
+      }
+
+
+      //creacion de los eventos 
+      view.watch("stationary", function(isStationary) {
+        showCoordinates(view.center);
+      });
+
+      view.on("pointer-move", function(evt) {
+        showCoordinates(view.toMap({ x: evt.x, y: evt.y }));
+      });
+
+
+
+      var coordinateConversionWidget = new CoordinateConversion({
+         view: view
+       });
+
+       view.ui.add(coordinateConversionWidget, "bottom-right");
+
+    });
+  </script>
+</head>
+
+
+<body>
+ <h1>  MI PRIMER MAPA DE BOGOTA </h1>
+  <div id="viewDiv"></div>
+<h3>
+
+  <a href="https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trailheads/FeatureServer/0" target="_blank" rel="">puntos </a>
+  <a href="https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Trails/FeatureServer/0" target="_blank" rel="">poligonos </a>
+  <a href="https://services3.arcgis.com/GVgbJbqm8hXASVYi/arcgis/rest/services/Parks_and_Open_Space/FeatureServer/0" target="_blank" rel="">parque  </a>
+</h3>
+
+      
+
+</body>
+</html>
