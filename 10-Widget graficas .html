@@ -1,0 +1,79 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS API for JavaScript Hello World App</title>
+ 
+  <!-- comentar ctr + / -->
+  <!-- estilo de pagina  -->
+ <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+  <script src="https://js.arcgis.com/4.11/"></script>
+
+  <script>
+      /*importante mantener orden de llamaod de los recurosos ya que pueden sobrelapar elementos o capas */
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/Sketch",
+      ], function(Map, MapView, GraphicsLayer, Sketch) {
+
+
+        var graphicsLayer = new GraphicsLayer();
+
+      var map = new Map({
+        basemap: "topo-vector",
+        //*** ADD ***//
+        layers: [graphicsLayer]
+      });
+
+
+
+      var view = new MapView({
+        
+        // indico a que elemento html insertare mi mapa 
+        container: "viewDiv",
+
+        // indicar que mapa deseo utilizar
+         map: map,
+        
+        /*longitud y latud */
+        center: [-118.71511, 34.09042], // longitude, latitude
+        zoom: 15
+      });
+
+
+/////////////// PASO 1 
+
+
+
+
+// 
+var sketch = new Sketch({
+        view: view,
+        layer: graphicsLayer
+      });
+
+      view.ui.add(sketch, "top-right");
+    
+    });
+
+  </script>
+</head>
+
+
+<body>
+ <h1>  MAPA PARQUES USA  </h1>
+  <div id="viewDiv"></div>
+</body>
+</html>
